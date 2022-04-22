@@ -1,0 +1,3 @@
+[submodule "models/segnet"]
+	path = models/segnet
+	url = https://github.com/delta-onera/segnet_pytorch

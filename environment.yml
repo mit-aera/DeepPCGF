@@ -1,0 +1,29 @@
+name: pcgf
+
+channels:
+  - pytorch
+  - defaults
+  - conda-forge
+  - bioconda
+  - open3d-admin
+  - anaconda
+  - auto
+
+dependencies:
+  - python=3.7
+  - openblas
+  - numpy
+  - google-sparsehash
+  - pytorch=1.2
+  - cudatoolkit=10.0
+  - torchvision=0.5.0
+  - pyyaml
+  - matplotlib
+  - scipy
+  - scikit-image
+  - tqdm
+  - tensorboardX
+  - tensorflow
+  - open3d=0.9
+  - pip
+    - plyfile
