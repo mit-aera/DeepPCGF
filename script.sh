@@ -1,20 +1,19 @@
 #!/bin/bash
 lognrun(){ echo "$@"; "$@"; }
 
-data_id='1'
+data_id='0'
 geometric_check='gcn'
 gpu_ids='0'
 mu='100'
 load_iter='120'
 select_pts='70'
 exp_name=('LineMOD' 'OcclusionLineMOD')
-exp_name=('LineMOD' 'tlo_exp')
-checkpoints_dir = '../checkpoints'
+checkpoints_dir='../checkpoints'
 dataset=('LineMOD' 'LineMODOcclusion')
 data_path=('../data/Linemod_preprocessed' '../data/Linemod_occlusion')
 
 is_train=false
-is_train=true
+#is_train=true
 if $is_train; then
 # trian the model
 lognrun python train.py \
@@ -28,7 +27,7 @@ lognrun python train.py \
   --geometric_check ${geometric_check} \
   --gpu_ids ${gpu_ids}  \
   --mu ${mu} \
-  #--continue_train
+#  --continue_train
 #  --load_iter ${load_iter} 
 else
 # model evaluation 

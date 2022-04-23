@@ -82,24 +82,22 @@ class BaseModel(ABC):
         Parameters:
             opt (Option class) -- stores all the experiment flags; needs to be a subclass of BaseOptions
         """
-	#self.schedulers = [networks.get_scheduler(optimizer, opt) for optimizer in self.optimizers]
-        if not self.isTrain:
-            if opt.resume is None:
-                load_suffix = 'epoch_%d' % opt.load_iter if opt.load_iter >= 0 else opt.epoch
+        # load network states only
+        load_suffix = 'epoch_%d' % opt.load_iter if opt.load_iter >= 0 else opt.epoch
+        if not self.isTrain or (opt.continue_train and opt.reset_learning):
+            if not opt.specified_path:
                 self.load_networks(load_suffix)
             else:
-                self.load_networks(-1, opt.resume)
+                self.load_networks(load_suffix, opt)
+        # load both network states and optimizer/scheduler 
         else:
-            if opt.resume is None and opt.continue_train:
-                load_suffix = 'epoch_%d' % opt.load_iter if opt.load_iter >= 0 else opt.epoch
-                #self.load_checkpoints(load_suffix)
-                self.load_networks(load_suffix)
-            elif opt.resume is not None:
-                #self.load_checkpoints(-1, opt.resume)
-                self.load_networks(-1, opt.resume)
-
+            if (not opt.specified_path) and opt.continue_train:
+                self.load_checkpoints(load_suffix)
+            elif opt.specified_path:
+                self.load_checkpoints(load_suffix, opt)
 
         self.print_networks(opt.verbose)
+         
 
     def eval(self):
         """Make models eval mode during test time"""
@@ -163,12 +161,6 @@ class BaseModel(ABC):
                 optimizer = getattr(self, 'optimizer' + name)
                 scheduler = getattr(self, 'scheduler' + name)
 
-                #if len(self.gpu_ids) > 0 and torch.cuda.is_available():
-                #    torch.save({'net':net.module.cpu().state_dict(),
-                #                'optimizer':optimizer.state_dict(),
-                #                'scheduler':scheduler.state_dict()},
-                #                save_path)
-                #    net.cuda(self.gpu_ids[0])
                 if len(self.gpu_ids) > 0 and torch.cuda.is_available():
                     torch.save({'net':net.cpu().state_dict(),
                                 'optimizer':optimizer.state_dict(),
@@ -212,20 +204,22 @@ class BaseModel(ABC):
         else:
             self.__patch_instance_norm_state_dict(state_dict, getattr(module, key), keys, i + 1)
 
-    def load_checkpoints(self, epoch, path=None):
+    def load_checkpoints(self, epoch, opt=None):
         """Load all the networks (including optimizer and scheduler) from the disk.
         Parameters:
             epoch (int) -- current epoch; used in the file name '%s_net_%s.pth' % (epoch, name)
         """
         for name in self.model_names:
             if isinstance(name, str):
-                if path is None:
+                if opt is None or ('net_%s_path' % (name) not in vars(opt)):
                     load_filename = '%s_net_%s.pth' % (epoch, name)
                     load_path = os.path.join(self.save_dir, load_filename)
                     if not os.path.exists(load_path):
                         raise ValueError('checkpoint not found')
                 else:
-                    load_path=path
+                    opt_dict = vars(opt)
+                    key = 'net_%s_path' % (name)
+                    load_path = opt_dict[key]
                 net = getattr(self, 'net' + name)
                 optimizer = getattr(self, 'optimizer' + name)
                 scheduler = getattr(self, 'scheduler' + name)
@@ -239,9 +233,15 @@ class BaseModel(ABC):
                 if hasattr(net_state_dict, '_metadata'):
                     del net_state_dict._metadata
 
-                net.load_state_dict(net_state_dict)
-                optimizer.load_state_dict(checkpoint['optimizer'])
-                scheduler.load_state_dict(checkpoint['scheduler'])
+                try:
+                    net.load_state_dict(net_state_dict)
+                    optimizer.load_state_dict(checkpoint['optimizer'])
+                    scheduler.load_state_dict(checkpoint['scheduler'])
+                except:
+                    net = torch.nn.DataParallel(net) 
+                    net.load_state_dict(net_state_dict)
+                    optimizer.load_state_dict(checkpoint['optimizer'])
+                    scheduler.load_state_dict(checkpoint['scheduler']) 
 
     def load_networks(self, epoch, path=None):
         """Load all the networks from the disk.

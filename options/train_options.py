@@ -17,6 +17,7 @@ class TrainOptions(BaseOptions):
 
         parser.add_argument('--save_by_iter', action='store_true', help='whether saves model by iteration')
         parser.add_argument('--continue_train', action='store_true', help='continue training: load the latest model')
+        parser.add_argument('--reset_learning', action='store_true', help='continue training but only load networks')
         parser.add_argument('--phase', type=str, default='train', help='train, val, test, etc')
 
         parser.add_argument('--do_augmentation', action='store_true', help='whether apply do_augmentation during training')
